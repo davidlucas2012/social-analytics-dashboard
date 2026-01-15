@@ -21,6 +21,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 function SkeletonRow() {
   return (
@@ -37,6 +43,8 @@ export default function PostsTable() {
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState<PostRow | null>(null);
 
   const columns = useMemo<ColumnDef<PostRow>[]>(
     () => [
@@ -142,6 +150,10 @@ export default function PostsTable() {
       return caption.includes(q) || platform.includes(q);
     },
   });
+  const openPost = (post: PostRow) => {
+    setSelected(post);
+    setOpen(true);
+  };
 
   return (
     <section className="space-y-3">
@@ -206,7 +218,11 @@ export default function PostsTable() {
               </TableRow>
             ) : (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
+                <TableRow
+                  key={row.id}
+                  className="cursor-pointer hover:bg-accent"
+                  onClick={() => openPost(row.original)}
+                >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
                       {flexRender(
@@ -220,6 +236,72 @@ export default function PostsTable() {
             )}
           </TableBody>
         </Table>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Post details</DialogTitle>
+            </DialogHeader>
+
+            {selected ? (
+              <div className="space-y-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Platform</span>
+                  <span className="font-medium capitalize">
+                    {selected.platform}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Media</span>
+                  <span className="font-medium capitalize">
+                    {selected.media_type}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Posted</span>
+                  <span className="font-medium">
+                    {new Date(selected.posted_at).toLocaleString()}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded-md border p-3">
+                    <div className="text-muted-foreground">Likes</div>
+                    <div className="font-semibold tabular-nums">
+                      {selected.likes ?? 0}
+                    </div>
+                  </div>
+                  <div className="rounded-md border p-3">
+                    <div className="text-muted-foreground">Comments</div>
+                    <div className="font-semibold tabular-nums">
+                      {selected.comments ?? 0}
+                    </div>
+                  </div>
+                  <div className="rounded-md border p-3">
+                    <div className="text-muted-foreground">Shares</div>
+                    <div className="font-semibold tabular-nums">
+                      {selected.shares ?? 0}
+                    </div>
+                  </div>
+                  <div className="rounded-md border p-3">
+                    <div className="text-muted-foreground">Saves</div>
+                    <div className="font-semibold tabular-nums">
+                      {selected.saves ?? 0}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="text-muted-foreground">Caption</div>
+                  <div className="whitespace-pre-wrap">
+                    {selected.caption ?? "(no caption)"}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </DialogContent>
+        </Dialog>
       </div>
     </section>
   );
