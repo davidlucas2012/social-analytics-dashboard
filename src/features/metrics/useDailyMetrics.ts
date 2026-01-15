@@ -7,7 +7,9 @@ export type DailyMetricPoint = Pick<
   "date" | "engagement" | "reach"
 >;
 
-async function fetchDailyMetrics(): Promise<DailyMetricPoint[]> {
+async function fetchDailyMetrics(days: number): Promise<DailyMetricPoint[]> {
+  const safeDays = Number.isFinite(days) ? Math.min(Math.max(days, 7), 90) : 30;
+
   const {
     data: { session },
     error: sessionError,
@@ -16,7 +18,8 @@ async function fetchDailyMetrics(): Promise<DailyMetricPoint[]> {
   if (sessionError) throw sessionError;
   if (!session) throw new Error("Not authenticated");
 
-  const res = await fetch("/api/metrics/daily", {
+  const search = safeDays ? `?days=${safeDays}` : "";
+  const res = await fetch(`/api/metrics/daily${search}`, {
     headers: {
       Authorization: `Bearer ${session.access_token}`,
     },
@@ -31,9 +34,9 @@ async function fetchDailyMetrics(): Promise<DailyMetricPoint[]> {
   return json.days;
 }
 
-export function useDailyMetrics() {
+export function useDailyMetrics(days = 30) {
   return useQuery({
-    queryKey: ["daily-metrics"],
-    queryFn: fetchDailyMetrics,
+    queryKey: ["daily-metrics", days],
+    queryFn: () => fetchDailyMetrics(days),
   });
 }

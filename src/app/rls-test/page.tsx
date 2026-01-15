@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 
 type PostRow = {
@@ -15,26 +15,52 @@ export default function RlsTestPage() {
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState<string>("");
   const [posts, setPosts] = useState<PostRow[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  async function refreshPosts() {
+  const refreshPosts = useCallback(async () => {
+    setLoading(true);
     setStatus("Loading posts…");
-    const { data, error } = await supabase
-      .from("posts")
-      .select("id, caption, platform, posted_at")
-      .order("posted_at", { ascending: false });
 
-    if (error) {
-      setStatus(`Error: ${error.message}`);
+    try {
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (sessionError) {
+        throw new Error(sessionError.message);
+      }
+
+      if (!session) {
+        setStatus("Not signed in. Enter credentials and sign in first.");
+        setPosts([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("posts")
+        .select("id, caption, platform, posted_at")
+        .order("posted_at", { ascending: false });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      setPosts(data ?? []);
+      setStatus(`Loaded ${data?.length ?? 0} post(s).`);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Unable to load posts.";
+      setStatus(`Error: ${message}`);
       setPosts([]);
-      return;
+    } finally {
+      setLoading(false);
     }
+  }, []);
 
-    setPosts(data ?? []);
-    setStatus(`Loaded ${data?.length ?? 0} post(s).`);
-  }
-
-  async function signIn() {
+  const signIn = useCallback(async () => {
     setStatus("Signing in…");
+    setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -42,24 +68,23 @@ export default function RlsTestPage() {
 
     if (error) {
       setStatus(`Sign-in error: ${error.message}`);
+      setLoading(false);
       return;
     }
 
     setStatus("Signed in. Fetching posts…");
     await refreshPosts();
-  }
+  }, [email, password, refreshPosts]);
 
-  async function signOut() {
+  const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     setPosts([]);
     setStatus("Signed out.");
-  }
+  }, []);
 
   useEffect(() => {
-    // If already signed in (session persisted), try loading
-    refreshPosts().catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    refreshPosts();
+  }, [refreshPosts]);
 
   return (
     <div className="mx-auto max-w-2xl p-6 space-y-4">
@@ -88,15 +113,21 @@ export default function RlsTestPage() {
           <button
             className="h-10 rounded-md bg-black px-4 text-white"
             onClick={signIn}
+            disabled={loading}
           >
             Sign in
           </button>
-          <button className="h-10 rounded-md border px-4" onClick={signOut}>
+          <button
+            className="h-10 rounded-md border px-4"
+            onClick={signOut}
+            disabled={loading}
+          >
             Sign out
           </button>
           <button
             className="h-10 rounded-md border px-4"
             onClick={refreshPosts}
+            disabled={loading}
           >
             Refresh posts
           </button>

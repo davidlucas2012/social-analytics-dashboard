@@ -39,7 +39,16 @@ export type Database = {
           reach?: number | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "daily_metrics_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+            referencedSchema: "auth"
+          },
+        ]
       }
       posts: {
         Row: {
@@ -96,7 +105,16 @@ export type Database = {
           thumbnail_url?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "posts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+            referencedSchema: "auth"
+          },
+        ]
       }
     }
     Views: {
