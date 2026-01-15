@@ -10,10 +10,23 @@ import { useDashboardUIStore } from "@/features/dashboard/useDashboardUIStore";
 import type { DailyMetricPoint } from "@/features/metrics/useDailyMetrics";
 
 export function EngagementLineChart({ days }: { days: DailyMetricPoint[] }) {
+  const [width, setWidth] = React.useState(800);
+  const containerRef = React.useRef<HTMLDivElement | null>(null);
+
+  // Resize observer keeps the SVG responsive to its parent width.
+  React.useEffect(() => {
+    const node = containerRef.current;
+    if (!node) return;
+    const resize = () => setWidth(Math.max(360, node.clientWidth));
+    resize();
+    const observer = new ResizeObserver(resize);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
   // Fixed internal dimensions, but scales visually with CSS (simple & reliable)
   const { chartMode, setChartMode } = useDashboardUIStore();
 
-  const width = 800;
   const height = 260;
   const margin = { top: 10, right: 16, bottom: 36, left: 44 };
   const toleranceValue = 20;
@@ -82,17 +95,17 @@ export function EngagementLineChart({ days }: { days: DailyMetricPoint[] }) {
         : curr;
 
     const left = xScale(nearest.date) ?? 0;
-    const top = yScale(nearest.engagement) ?? 0;
+      const top = yScale(nearest.engagement) ?? 0;
 
-    showTooltip({
-      tooltipData: { date: nearest.date, engagement: nearest.engagement },
-      tooltipLeft: left,
+      showTooltip({
+        tooltipData: { date: nearest.date, engagement: nearest.engagement },
+        tooltipLeft: left,
       tooltipTop: top,
     });
   }
 
   return (
-    <div className="w-full overflow-x-auto space-y-3">
+    <div ref={containerRef} className="w-full overflow-x-auto space-y-3">
       <div className="flex items-center justify-end gap-2">
         <Button
           type="button"
@@ -119,8 +132,16 @@ export function EngagementLineChart({ days }: { days: DailyMetricPoint[] }) {
           viewBox={`0 0 ${width} ${height}`}
           className="w-full"
           role="img"
-          aria-label="Engagement line chart for the last 30 days"
+          aria-label="Engagement chart for the last 30 days"
         >
+          {/* Legend */}
+          <g transform={`translate(${margin.left}, ${margin.top + 4})`}>
+            <circle r={5} fill="currentColor" cx={0} cy={0} />
+            <text x={10} y={4} fontSize={11} className="fill-current">
+              Engagement (likes + comments + shares + saves)
+            </text>
+          </g>
+
           <AxisLeft
             scale={yScale}
             left={margin.left}
@@ -148,6 +169,26 @@ export function EngagementLineChart({ days }: { days: DailyMetricPoint[] }) {
               dy: "0.5em",
             })}
           />
+          {/* Axis labels */}
+          <text
+            x={width / 2}
+            y={height - 4}
+            textAnchor="middle"
+            fontSize={11}
+            className="fill-current"
+          >
+            Date (UTC)
+          </text>
+          <text
+            x={-height / 2}
+            y={14}
+            transform="rotate(-90)"
+            textAnchor="middle"
+            fontSize={11}
+            className="fill-current"
+          >
+            Engagement
+          </text>
 
           {tooltipData ? (
             <circle
