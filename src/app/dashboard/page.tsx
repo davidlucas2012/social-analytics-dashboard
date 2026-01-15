@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function DashboardPage() {
   const router = useRouter();
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const [email, setEmail] = useState<string | null>(null);
   const {
     data: summary,
@@ -37,11 +38,11 @@ export default function DashboardPage() {
       } = await supabase.auth.getSession();
 
       if (!session) {
-        router.replace("/login");
-        return;
+        return router.replace("/login");
+      } else {
+        setEmail(session.user.email ?? null);
       }
-
-      setEmail(session.user.email ?? null);
+      setCheckingAuth(false);
     }
 
     loadSession();
@@ -50,6 +51,16 @@ export default function DashboardPage() {
   async function signOut() {
     await supabase.auth.signOut();
     router.replace("/login");
+  }
+
+  if (checkingAuth) {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <p className="text-sm text-muted-foreground">
+          Checking authentication…
+        </p>
+      </main>
+    );
   }
 
   return (
@@ -149,8 +160,8 @@ export default function DashboardPage() {
                           {summary.topPost.caption ?? "(no caption)"}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {summary.topPost.engagementTotal.toLocaleString()} total
-                          interactions •{" "}
+                          {summary.topPost.engagementTotal.toLocaleString()}{" "}
+                          total interactions •{" "}
                           {summary.topPost.engagementRate == null
                             ? "N/A"
                             : `${summary.topPost.engagementRate}% engagement rate`}

@@ -33,13 +33,13 @@ export async function GET(req: Request) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  // Clamp optional ?days query to a safe window [7, 90], default 30.
+  // Validate ?days query to a safe window [7, 90]; reject invalid inputs.
   const daysParam = url.searchParams.get("days");
   const parsedDays = daysParam ? Number.parseInt(daysParam, 10) : 30;
-  const days =
-    Number.isFinite(parsedDays) && parsedDays >= 7 && parsedDays <= 90
-      ? parsedDays
-      : 30;
+  if (daysParam && (!Number.isFinite(parsedDays) || parsedDays < 7 || parsedDays > 90)) {
+    return NextResponse.json({ message: "Invalid days param (expected 7-90)" }, { status: 400 });
+  }
+  const days = Number.isFinite(parsedDays) ? parsedDays : 30;
 
   const supabaseUrl = getRequiredEnv("NEXT_PUBLIC_SUPABASE_URL");
   const supabaseAnonKey = getRequiredEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
@@ -50,7 +50,7 @@ export async function GET(req: Request) {
   });
 
   // Validate the token by fetching the user; invalid/expired tokens return 401.
-  const { data: userData, error: userError } = await supabase.auth.getUser();
+  const { data: userData, error: userError } = await supabase.auth.getUser(token);
   if (userError || !userData?.user) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }

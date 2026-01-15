@@ -4,6 +4,7 @@ import type { Tables } from "@/lib/supabase/database.types";
 
 type SummaryResponse = {
   totalEngagement: number;
+  totalPosts: number;
   averageEngagementRate: number | null;
   trendPercent: number | null;
   topPost: {
@@ -16,7 +17,8 @@ type SummaryResponse = {
     permalink: string | null;
     thumbnailUrl: string | null;
   } | null;
-  totalPosts: number;
+  previousPeriodEngagement: number;
+  currentPeriodEngagement: number;
 };
 
 function formatDateYYYYMMDD(d: Date): string {
@@ -153,13 +155,19 @@ export async function GET(req: Request) {
   }
 
   const trendPercent = calculateTrendPercent(metrics ?? []);
+  const currentPeriodEngagement =
+    metrics?.slice(-7).reduce((sum, row) => sum + (row.engagement ?? 0), 0) ?? 0;
+  const previousPeriodEngagement =
+    metrics?.slice(0, Math.max(0, (metrics?.length ?? 0) - 7)).reduce((sum, row) => sum + (row.engagement ?? 0), 0) ?? 0;
 
   const payload: SummaryResponse = {
     totalEngagement,
+    totalPosts: posts?.length ?? 0,
     averageEngagementRate,
     trendPercent,
     topPost,
-    totalPosts: posts?.length ?? 0,
+    currentPeriodEngagement,
+    previousPeriodEngagement,
   };
 
   return NextResponse.json(payload);
