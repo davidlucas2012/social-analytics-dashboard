@@ -29,16 +29,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useDashboardUIStore } from "@/features/dashboard/useDashboardUIStore";
-
-function SkeletonRow() {
-  return (
-    <TableRow>
-      <TableCell colSpan={5}>
-        <div className="h-5 w-full animate-pulse rounded-md bg-muted" />
-      </TableCell>
-    </TableRow>
-  );
-}
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function PostsTable() {
   const { data: posts, isLoading, error } = usePosts();
@@ -202,16 +193,40 @@ export default function PostsTable() {
 
           <TableBody>
             {isLoading ? (
-              <>
-                <SkeletonRow />
-                <SkeletonRow />
-                <SkeletonRow />
-                <SkeletonRow />
-              </>
+              Array.from({ length: 6 }).map((_, i) => (
+                <TableRow key={`skeleton-${i}`}>
+                  <TableCell className="w-[140px]">
+                    <Skeleton className="h-5 w-16" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-5 w-[380px]" />
+                  </TableCell>
+                  <TableCell className="w-[140px]">
+                    <Skeleton className="h-5 w-24" />
+                  </TableCell>
+                  <TableCell className="w-[120px]">
+                    <Skeleton className="h-5 w-12" />
+                  </TableCell>
+                  <TableCell className="w-[120px]">
+                    <Skeleton className="h-5 w-12" />
+                  </TableCell>
+                </TableRow>
+              ))
             ) : error ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-sm text-red-600">
                   Failed to load posts: {(error as Error).message}
+                </TableCell>
+              </TableRow>
+            ) : posts && posts.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-sm text-muted-foreground">
+                  <div className="space-y-1">
+                    <div className="font-medium text-foreground">
+                      No posts yet
+                    </div>
+                    <div>Create your first post to see analytics here.</div>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : table.getRowModel().rows.length === 0 ? (

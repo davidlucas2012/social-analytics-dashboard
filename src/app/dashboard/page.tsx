@@ -8,6 +8,7 @@ import { useDailyMetrics } from "@/features/metrics/useDailyMetrics";
 import { EngagementLineChart } from "./EngagementLineChart";
 import { useSummary } from "@/features/analytics/useSummary";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function calcEngagementTrend(days: { engagement: number | null }[]) {
   if (!days || days.length < 14) return null;
@@ -22,7 +23,6 @@ function calcEngagementTrend(days: { engagement: number | null }[]) {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState<string | null>(null);
   const {
     data: summary,
@@ -39,6 +39,11 @@ export default function DashboardPage() {
     ? calcEngagementTrend(dailyMetrics)
     : null;
 
+  const hasEngagementData =
+    Array.isArray(dailyMetrics) &&
+    dailyMetrics.length > 0 &&
+    dailyMetrics.some((d) => (d.engagement ?? 0) > 0);
+
   useEffect(() => {
     async function loadSession() {
       const {
@@ -51,7 +56,6 @@ export default function DashboardPage() {
       }
 
       setEmail(session.user.email ?? null);
-      setLoading(false);
     }
 
     loadSession();
@@ -60,14 +64,6 @@ export default function DashboardPage() {
   async function signOut() {
     await supabase.auth.signOut();
     router.replace("/login");
-  }
-
-  if (loading) {
-    return (
-      <main className="min-h-screen flex items-center justify-center">
-        <p className="text-sm text-muted-foreground">Loading dashboard…</p>
-      </main>
-    );
   }
 
   return (
@@ -87,70 +83,84 @@ export default function DashboardPage() {
           Signed in as <span className="font-medium">{email}</span>
         </p>
         <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Total posts</CardTitle>
-            </CardHeader>
-            <CardContent className="text-2xl font-semibold tabular-nums">
-              {summaryLoading ? "—" : summary?.totalPosts ?? 0}
-            </CardContent>
-          </Card>
+          {summaryLoading
+            ? Array.from({ length: 4 }).map((_, i) => (
+                <Card key={i}>
+                  <CardHeader>
+                    <Skeleton className="h-4 w-28" />
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <Skeleton className="h-7 w-24" />
+                    <Skeleton className="h-3 w-32" />
+                  </CardContent>
+                </Card>
+              ))
+            : [
+                <Card key="total-posts">
+                  <CardHeader>
+                    <CardTitle>Total posts</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-2xl font-semibold tabular-nums">
+                    {summary?.totalPosts ?? 0}
+                  </CardContent>
+                </Card>,
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Avg engagement rate</CardTitle>
-            </CardHeader>
-            <CardContent className="text-2xl font-semibold tabular-nums">
-              {summaryLoading
-                ? "—"
-                : summary?.avgEngagementRate == null
-                ? "—"
-                : `${summary.avgEngagementRate}%`}
-            </CardContent>
-          </Card>
+                <Card key="avg-engagement">
+                  <CardHeader>
+                    <CardTitle>Avg engagement rate</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-2xl font-semibold tabular-nums">
+                    {summary?.avgEngagementRate == null
+                      ? "—"
+                      : `${summary.avgEngagementRate}%`}
+                  </CardContent>
+                </Card>,
 
-          <Card>
-            <CardHeader>
-              <CardTitle>7‑day engagement trend</CardTitle>
-            </CardHeader>
-            <CardContent className="text-2xl font-semibold tabular-nums">
-              {metricsLoading || engagementTrend == null ? (
-                "—"
-              ) : engagementTrend >= 0 ? (
-                <span className="text-green-600">+{engagementTrend}%</span>
-              ) : (
-                <span className="text-red-600">{engagementTrend}%</span>
-              )}
-            </CardContent>
-          </Card>
+                <Card key="engagement-trend">
+                  <CardHeader>
+                    <CardTitle>7‑day engagement trend</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-2xl font-semibold tabular-nums">
+                    {metricsLoading ? (
+                      <Skeleton className="h-7 w-20" />
+                    ) : engagementTrend == null ? (
+                      "—"
+                    ) : engagementTrend >= 0 ? (
+                      <span className="text-green-600">
+                        +{engagementTrend}%
+                      </span>
+                    ) : (
+                      <span className="text-red-600">{engagementTrend}%</span>
+                    )}
+                  </CardContent>
+                </Card>,
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Top post</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-1">
-              {summaryLoading ? (
-                <div className="text-sm text-muted-foreground">Loading…</div>
-              ) : summaryError ? (
-                <div className="text-sm text-red-600">
-                  {(summaryError as Error).message}
-                </div>
-              ) : summary?.topPost ? (
-                <>
-                  <div className="text-sm font-medium capitalize">
-                    {summary.topPost.platform}
-                  </div>
-                  <div className="text-sm text-muted-foreground line-clamp-2">
-                    {summary.topPost.caption ?? "(no caption)"}
-                  </div>
-                </>
-              ) : (
-                <div className="text-sm text-muted-foreground">
-                  No posts yet.
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                <Card key="top-post">
+                  <CardHeader>
+                    <CardTitle>Top post</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-1">
+                    {summaryError ? (
+                      <div className="text-sm text-red-600">
+                        {(summaryError as Error).message}
+                      </div>
+                    ) : summary?.topPost ? (
+                      <>
+                        <div className="text-sm font-medium capitalize">
+                          {summary.topPost.platform}
+                        </div>
+                        <div className="text-sm text-muted-foreground line-clamp-2">
+                          {summary.topPost.caption ?? "(no caption)"}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-sm text-muted-foreground">
+                        No posts yet.
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>,
+              ]}
         </section>
         <PostsTable />
         <section className="rounded-xl border p-6 space-y-3">
@@ -165,12 +175,12 @@ export default function DashboardPage() {
             <p className="text-sm text-red-600">
               Error: {(metricsError as Error).message}
             </p>
-          ) : !dailyMetrics || dailyMetrics.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No metrics available.
+          ) : !hasEngagementData ? (
+            <p className="text-sm text-muted-foreground text-center">
+              No engagement data available for the selected period.
             </p>
           ) : (
-            <EngagementLineChart days={dailyMetrics} />
+            <EngagementLineChart days={dailyMetrics!} />
           )}
         </section>
       </section>
