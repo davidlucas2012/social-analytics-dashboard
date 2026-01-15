@@ -8,6 +8,7 @@ import {
   getFilteredRowModel,
   getSortedRowModel,
   SortingState,
+  Updater,
   useReactTable,
 } from "@tanstack/react-table";
 import { usePosts, PostRow } from "@/features/posts/usePosts";
@@ -27,6 +28,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useDashboardUIStore } from "@/features/dashboard/useDashboardUIStore";
 
 function SkeletonRow() {
   return (
@@ -42,9 +44,14 @@ export default function PostsTable() {
   const { data: posts, isLoading, error } = usePosts();
 
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [globalFilter, setGlobalFilter] = useState("");
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<PostRow | null>(null);
+  const { postsSearch, setPostsSearch } = useDashboardUIStore();
+
+  const handleGlobalFilterChange = (value: Updater<string>) => {
+    const next = typeof value === "function" ? value(postsSearch) : value;
+    setPostsSearch(next);
+  };
 
   const columns = useMemo<ColumnDef<PostRow>[]>(
     () => [
@@ -134,9 +141,9 @@ export default function PostsTable() {
   const table = useReactTable({
     data: posts ?? [],
     columns,
-    state: { sorting, globalFilter },
+    state: { sorting, globalFilter: postsSearch },
     onSortingChange: setSorting,
-    onGlobalFilterChange: setGlobalFilter,
+    onGlobalFilterChange: handleGlobalFilterChange,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -167,8 +174,8 @@ export default function PostsTable() {
 
         <div className="w-full sm:w-64">
           <Input
-            value={globalFilter}
-            onChange={(e) => setGlobalFilter(e.target.value)}
+            value={postsSearch}
+            onChange={(e) => setPostsSearch(e.target.value)}
             placeholder="Filter posts…"
           />
         </div>

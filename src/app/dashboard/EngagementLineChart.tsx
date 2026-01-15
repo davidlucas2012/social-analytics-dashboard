@@ -1,11 +1,12 @@
 "use client";
+import React from "react";
 import { scaleLinear, scaleUtc } from "@visx/scale";
 import { AxisBottom, AxisLeft } from "@visx/axis";
 import { AreaClosed, LinePath } from "@visx/shape";
-import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { localPoint } from "@visx/event";
 import { TooltipWithBounds, defaultStyles, useTooltip } from "@visx/tooltip";
+import { useDashboardUIStore } from "@/features/dashboard/useDashboardUIStore";
 
 type DailyMetric = {
   date: string; // YYYY-MM-DD
@@ -15,7 +16,7 @@ type DailyMetric = {
 
 export function EngagementLineChart({ days }: { days: DailyMetric[] }) {
   // Fixed internal dimensions, but scales visually with CSS (simple & reliable)
-  const [mode, setMode] = useState<"line" | "area">("line");
+  const { chartMode, setChartMode } = useDashboardUIStore();
 
   const width = 800;
   const height = 260;
@@ -100,17 +101,17 @@ export function EngagementLineChart({ days }: { days: DailyMetric[] }) {
       <div className="flex items-center justify-end gap-2">
         <Button
           type="button"
-          variant={mode === "line" ? "default" : "outline"}
+          variant={chartMode === "line" ? "default" : "outline"}
           size="sm"
-          onClick={() => setMode("line")}
+          onClick={() => setChartMode("line")}
         >
           Line
         </Button>
         <Button
           type="button"
-          variant={mode === "area" ? "default" : "outline"}
+          variant={chartMode === "area" ? "default" : "outline"}
           size="sm"
-          onClick={() => setMode("area")}
+          onClick={() => setChartMode("area")}
         >
           Area
         </Button>
@@ -163,7 +164,7 @@ export function EngagementLineChart({ days }: { days: DailyMetric[] }) {
             />
           ) : null}
 
-          {mode === "area" ? (
+          {chartMode === "area" ? (
             <AreaClosed
               data={data}
               x={(d) => xScale(d.date) ?? 0}
