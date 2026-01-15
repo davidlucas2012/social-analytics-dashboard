@@ -4,6 +4,7 @@ import { usePosts } from "@/features/posts/usePosts";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
+import PostsTable from "@/features/posts/PostsTable";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -62,34 +63,7 @@ export default function DashboardPage() {
         <p className="text-sm">
           Signed in as <span className="font-medium">{email}</span>
         </p>
-        <div className="mt-4 space-y-2">
-          <p className="text-sm">
-            Posts visible (RLS enforced):{" "}
-            <span className="font-medium">
-              {postsLoading ? "Loading…" : posts?.length ?? 0}
-            </span>
-          </p>
-
-          {postsError ? (
-            <p className="text-sm text-red-600">
-              Error loading posts: {(postsError as Error).message}
-            </p>
-          ) : null}
-
-          {posts && posts.length > 0 ? (
-            <ul className="list-disc pl-5 text-sm space-y-1">
-              {posts.slice(0, 5).map((p) => (
-                <li key={p.id}>
-                  <span className="font-medium">{p.platform}</span>:{" "}
-                  {p.caption ?? "(no caption)"}
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Dashboard content will go here.
-        </p>
+        <PostsTable />
       </section>
     </main>
   );
