@@ -6,11 +6,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { writeAuthCookies } from "@/lib/supabase/authCookies";
 
-export default function LoginPage() {
+export default function SignupPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/dashboard";
-  const [email, setEmail] = useState("usera@test.com");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
@@ -18,11 +18,17 @@ export default function LoginPage() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
-    setStatus("Signing in…");
+    setStatus("Creating account…");
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        emailRedirectTo:
+          typeof window !== "undefined"
+            ? `${window.location.origin}/login`
+            : undefined,
+      },
     });
 
     if (error) {
@@ -33,16 +39,19 @@ export default function LoginPage() {
 
     if (data?.session) {
       writeAuthCookies(data.session);
+      setStatus("Account created. Redirecting…");
+      router.replace(redirectTo);
+      return;
     }
 
-    setStatus("Signed in!");
-    router.replace(redirectTo);
+    setStatus("Check your email to confirm your account, then sign in.");
+    setSubmitting(false);
   }
 
   return (
     <main className="min-h-screen flex items-center justify-center p-6">
       <div className="w-full max-w-sm rounded-xl border p-6 space-y-4">
-        <h1 className="text-xl font-semibold">Sign in</h1>
+        <h1 className="text-xl font-semibold">Create account</h1>
 
         <form onSubmit={onSubmit} className="space-y-3">
           <div className="space-y-1">
@@ -51,7 +60,7 @@ export default function LoginPage() {
               className="h-10 w-full rounded-md border px-3"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="usera@test.com"
+              placeholder="you@example.com"
               autoComplete="email"
               required
             />
@@ -65,7 +74,8 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               type="password"
-              autoComplete="current-password"
+              autoComplete="new-password"
+              minLength={6}
               required
             />
           </div>
@@ -75,23 +85,20 @@ export default function LoginPage() {
             className="h-10 w-full rounded-md bg-black text-white disabled:opacity-70"
             disabled={submitting}
           >
-            {submitting ? "Signing in…" : "Sign in"}
+            {submitting ? "Creating account…" : "Sign up"}
           </button>
         </form>
 
-        <div className="space-y-2 text-sm">
+        <div className="space-y-1 text-sm">
           {status ? (
             <p className="text-muted-foreground">{status}</p>
           ) : null}
           <p className="text-muted-foreground">
-            Need an account?{" "}
-            <Link className="underline" href={`/signup?redirect=${redirectTo}`}>
-              Sign up
+            Already have an account?{" "}
+            <Link className="underline" href={`/login?redirect=${redirectTo}`}>
+              Sign in
             </Link>
             .
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Use your Supabase auth users (User A / User B) or create a new one.
           </p>
         </div>
       </div>
