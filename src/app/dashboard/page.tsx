@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import PostsTable from "@/features/posts/PostsTable";
 import { useDailyMetrics } from "@/features/metrics/useDailyMetrics";
@@ -9,17 +10,6 @@ import { EngagementLineChart } from "./EngagementLineChart";
 import { useSummary } from "@/features/analytics/useSummary";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-
-function calcEngagementTrend(days: { engagement: number | null }[]) {
-  if (!days || days.length < 14) return null;
-  const last7 = days.slice(-7).reduce((a, d) => a + (d.engagement ?? 0), 0);
-  const prev7 = days
-    .slice(-14, -7)
-    .reduce((a, d) => a + (d.engagement ?? 0), 0);
-  if (prev7 === 0) return null;
-  const pct = ((last7 - prev7) / prev7) * 100;
-  return Number(pct.toFixed(1));
-}
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -34,10 +24,6 @@ export default function DashboardPage() {
     isLoading: metricsLoading,
     error: metricsError,
   } = useDailyMetrics();
-
-  const engagementTrend = dailyMetrics
-    ? calcEngagementTrend(dailyMetrics)
-    : null;
 
   const hasEngagementData =
     Array.isArray(dailyMetrics) &&
@@ -96,12 +82,12 @@ export default function DashboardPage() {
                 </Card>
               ))
             : [
-                <Card key="total-posts">
+                <Card key="total-engagement">
                   <CardHeader>
-                    <CardTitle>Total posts</CardTitle>
+                    <CardTitle>Total engagement</CardTitle>
                   </CardHeader>
                   <CardContent className="text-2xl font-semibold tabular-nums">
-                    {summary?.totalPosts ?? 0}
+                    {summary?.totalEngagement?.toLocaleString() ?? "0"}
                   </CardContent>
                 </Card>,
 
@@ -110,9 +96,9 @@ export default function DashboardPage() {
                     <CardTitle>Avg engagement rate</CardTitle>
                   </CardHeader>
                   <CardContent className="text-2xl font-semibold tabular-nums">
-                    {summary?.avgEngagementRate == null
+                    {summary?.averageEngagementRate == null
                       ? "—"
-                      : `${summary.avgEngagementRate}%`}
+                      : `${summary.averageEngagementRate}%`}
                   </CardContent>
                 </Card>,
 
@@ -120,17 +106,27 @@ export default function DashboardPage() {
                   <CardHeader>
                     <CardTitle>7‑day engagement trend</CardTitle>
                   </CardHeader>
-                  <CardContent className="text-2xl font-semibold tabular-nums">
-                    {metricsLoading ? (
-                      <Skeleton className="h-7 w-20" />
-                    ) : engagementTrend == null ? (
-                      "—"
-                    ) : engagementTrend >= 0 ? (
-                      <span className="text-green-600">
-                        +{engagementTrend}%
+                  <CardContent className="flex items-center gap-2 text-2xl font-semibold tabular-nums">
+                    {summaryError ? (
+                      <span className="text-sm text-red-600">
+                        {(summaryError as Error).message}
                       </span>
+                    ) : summary?.trendPercent == null ? (
+                      "—"
+                    ) : summary.trendPercent >= 0 ? (
+                      <>
+                        <ArrowUpRight className="h-5 w-5 text-green-600" />
+                        <span className="text-green-600">
+                          +{summary.trendPercent}%
+                        </span>
+                      </>
                     ) : (
-                      <span className="text-red-600">{engagementTrend}%</span>
+                      <>
+                        <ArrowDownRight className="h-5 w-5 text-red-600" />
+                        <span className="text-red-600">
+                          {summary.trendPercent}%
+                        </span>
+                      </>
                     )}
                   </CardContent>
                 </Card>,
@@ -151,6 +147,13 @@ export default function DashboardPage() {
                         </div>
                         <div className="text-sm text-muted-foreground line-clamp-2">
                           {summary.topPost.caption ?? "(no caption)"}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {summary.topPost.engagementTotal.toLocaleString()} total
+                          interactions •{" "}
+                          {summary.topPost.engagementRate == null
+                            ? "N/A"
+                            : `${summary.topPost.engagementRate}% engagement rate`}
                         </div>
                       </>
                     ) : (

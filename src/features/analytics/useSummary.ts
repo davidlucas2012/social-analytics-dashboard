@@ -2,15 +2,20 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase/client";
 
 export type SummaryResponse = {
-  totalPosts: number;
-  avgEngagementRate: number | null;
+  totalEngagement: number;
+  averageEngagementRate: number | null;
+  trendPercent: number | null;
   topPost: {
     id: string;
     caption: string | null;
     platform: "instagram" | "tiktok";
     postedAt: string;
     engagementRate: number | null;
+    engagementTotal: number;
+    permalink: string | null;
+    thumbnailUrl: string | null;
   } | null;
+  totalPosts: number;
 };
 
 async function fetchSummary(): Promise<SummaryResponse> {
