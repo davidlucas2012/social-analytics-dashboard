@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
+import type { Database } from "./database.types";
 
 function getRequiredEnv(name: string): string {
   const v = process.env[name];
@@ -24,7 +25,7 @@ export async function supabaseServerClient(accessToken?: string) {
   const tokenFromCookie = cookieStore.get("sb-access-token")?.value;
   const token = accessToken ?? tokenFromCookie;
 
-  return createClient(supabaseUrl, supabaseAnonKey, {
+  return createClient<Database>(supabaseUrl, supabaseAnonKey, {
     global: token
       ? { headers: { Authorization: `Bearer ${token}` } }
       : undefined,

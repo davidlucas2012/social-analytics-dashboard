@@ -7,14 +7,9 @@ import { Button } from "@/components/ui/button";
 import { localPoint } from "@visx/event";
 import { TooltipWithBounds, defaultStyles, useTooltip } from "@visx/tooltip";
 import { useDashboardUIStore } from "@/features/dashboard/useDashboardUIStore";
+import type { DailyMetricPoint } from "@/features/metrics/useDailyMetrics";
 
-type DailyMetric = {
-  date: string; // YYYY-MM-DD
-  engagement: number;
-  reach: number;
-};
-
-export function EngagementLineChart({ days }: { days: DailyMetric[] }) {
+export function EngagementLineChart({ days }: { days: DailyMetricPoint[] }) {
   // Fixed internal dimensions, but scales visually with CSS (simple & reliable)
   const { chartMode, setChartMode } = useDashboardUIStore();
 

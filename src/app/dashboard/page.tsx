@@ -9,7 +9,7 @@ import { EngagementLineChart } from "./EngagementLineChart";
 import { useSummary } from "@/features/analytics/useSummary";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-function calcEngagementTrend(days: { engagement: number }[]) {
+function calcEngagementTrend(days: { engagement: number | null }[]) {
   if (!days || days.length < 14) return null;
   const last7 = days.slice(-7).reduce((a, d) => a + (d.engagement ?? 0), 0);
   const prev7 = days

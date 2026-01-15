@@ -1,13 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase/client";
+import type { Tables } from "@/lib/supabase/database.types";
 
-type DailyMetric = {
-  date: string;
-  engagement: number;
-  reach: number;
-};
+export type DailyMetricPoint = Pick<
+  Tables<"daily_metrics">,
+  "date" | "engagement" | "reach"
+>;
 
-async function fetchDailyMetrics(): Promise<DailyMetric[]> {
+async function fetchDailyMetrics(): Promise<DailyMetricPoint[]> {
   const {
     data: { session },
     error: sessionError,
@@ -27,8 +27,8 @@ async function fetchDailyMetrics(): Promise<DailyMetric[]> {
     throw new Error(text || "Failed to fetch daily metrics");
   }
 
-  const json = await res.json();
-  return json.days as DailyMetric[];
+  const json: { days: DailyMetricPoint[] } = await res.json();
+  return json.days;
 }
 
 export function useDailyMetrics() {

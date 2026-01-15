@@ -1,13 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import type { Database, Tables } from "@/lib/supabase/database.types";
 
 export const runtime = "edge";
 
-type DailyMetric = {
-  date: string; // YYYY-MM-DD
-  engagement: number;
-  reach: number;
-};
+type DailyMetric = Pick<Tables<"daily_metrics">, "date" | "engagement" | "reach">;
 
 function getRequiredEnv(name: string): string {
   const v = process.env[name];
@@ -38,7 +35,7 @@ export async function GET(req: Request) {
   const supabaseAnonKey = getRequiredEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
 
   // Create client with Authorization header so Postgres RLS applies.
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     global: { headers: { Authorization: `Bearer ${token}` } },
   });
 
@@ -66,10 +63,10 @@ export async function GET(req: Request) {
   // Normalize into exactly 30 days (fill missing days with 0s)
   const byDate = new Map<string, DailyMetric>();
   for (const row of data ?? []) {
-    byDate.set(row.date as string, {
-      date: row.date as string,
-      engagement: (row.engagement as number | null) ?? 0,
-      reach: (row.reach as number | null) ?? 0,
+    byDate.set(row.date, {
+      date: row.date,
+      engagement: row.engagement ?? 0,
+      reach: row.reach ?? 0,
     });
   }
 
