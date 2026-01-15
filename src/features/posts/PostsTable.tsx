@@ -12,7 +12,8 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import Image from "next/image";
-import { usePosts, PostRow } from "@/features/posts/usePosts";
+import { formatDateShort } from "@/lib/format";
+import { usePosts } from "@/features/posts/usePosts";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -23,29 +24,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { useDashboardUIStore } from "@/features/dashboard/useDashboardUIStore";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ExternalLink } from "lucide-react";
-import moment from "moment";
-import { Badge } from "@/components/ui/badge";
-
-type PostWithComputed = PostRow & {
-  engagementTotal: number;
-  engagementRate: number | null;
-};
-
-function formatDate(iso: string) {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime())
-    ? iso
-    : d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-}
+import { PostDetailsModal } from "@/features/posts/PostDetailsModal";
+import type { PostWithComputed } from "@/features/posts/types";
 
 const numericSort =
   (fn: (row: PostWithComputed) => number) =>
@@ -56,11 +38,16 @@ export default function PostsTable() {
   const { data: posts, isLoading, error } = usePosts();
 
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState<PostWithComputed | null>(null);
-  const [imageLoading, setImageLoading] = useState(false);
-  const { postsSearch, setPostsSearch, selectedPlatform, setSelectedPlatform } =
-    useDashboardUIStore();
+  const {
+    postsSearch,
+    setPostsSearch,
+    selectedPlatform,
+    setSelectedPlatform,
+    selectedPostId,
+    setSelectedPostId,
+    isPostModalOpen,
+    setPostModalOpen,
+  } = useDashboardUIStore();
 
   const handleGlobalFilterChange = (value: Updater<string>) => {
     const next = typeof value === "function" ? value(postsSearch) : value;
@@ -80,6 +67,11 @@ export default function PostsTable() {
     if (selectedPlatform === "all") return computed;
     return computed.filter((p) => p.platform === selectedPlatform);
   }, [computed, selectedPlatform]);
+
+  const selected = useMemo(
+    () => computed.find((p) => p.id === selectedPostId) ?? null,
+    [computed, selectedPostId]
+  );
 
   const columns = useMemo<ColumnDef<PostWithComputed>[]>(
     () => [
@@ -145,7 +137,7 @@ export default function PostsTable() {
           new Date(b.original.posted_at).getTime(),
         cell: ({ getValue }) => (
           <span className="whitespace-nowrap">
-            {formatDate(String(getValue()))}
+            {formatDateShort(String(getValue()))}
           </span>
         ),
       },
@@ -324,9 +316,13 @@ export default function PostsTable() {
   const columnCount = table.getAllColumns().length || 1;
 
   const openPost = (post: PostWithComputed) => {
-    setSelected(post);
-    setImageLoading(!!post.thumbnail_url);
-    setOpen(true);
+    setSelectedPostId(post.id);
+    setPostModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setPostModalOpen(false);
+    setSelectedPostId(null);
   };
 
   return (
@@ -453,127 +449,7 @@ export default function PostsTable() {
             )}
           </TableBody>
         </Table>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent className="max-w-3xl">
-            <DialogHeader className="flex-row items-start justify-between gap-3">
-              <div>
-                <DialogTitle className="text-lg font-semibold">
-                  Post details
-                </DialogTitle>
-                {selected ? (
-                  <Badge variant="outline" className="capitalize">
-                    {moment(selected.posted_at).format("MMM D, YYYY, h:mm A")}
-                  </Badge>
-                ) : null}
-              </div>
-            </DialogHeader>
-
-            {selected ? (
-              <div className="space-y-4 text-sm">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex gap-4 w-full">
-                    {selected.thumbnail_url ? (
-                      <div className="relative overflow-hidden rounded-xl border shadow-sm">
-                        {imageLoading ? (
-                          <Skeleton className="absolute inset-0 h-full w-full" />
-                        ) : null}
-                        <Image
-                          src={selected.thumbnail_url}
-                          alt="Post thumbnail"
-                          width={120}
-                          height={120}
-                          className="h-full object-cover transition duration-300"
-                          onLoadingComplete={() => setImageLoading(false)}
-                        />
-                      </div>
-                    ) : (
-                      <div className="h-full w-full rounded-xl border bg-muted flex items-center justify-center text-xs text-muted-foreground">
-                        No thumbnail
-                      </div>
-                    )}
-                    <div className="space-y-3 text-sm text-muted-foreground">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[11px] uppercase tracking-wide">
-                          Platform
-                        </span>
-                        <span className="text-base font-semibold text-foreground capitalize">
-                          {selected.platform}
-                        </span>
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[11px] uppercase tracking-wide">
-                          Media
-                        </span>
-                        <span className="text-base font-semibold text-foreground capitalize">
-                          {selected.media_type}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {[
-                    { label: "Likes", value: selected.likes ?? 0 },
-                    { label: "Comments", value: selected.comments ?? 0 },
-                    { label: "Shares", value: selected.shares ?? 0 },
-                    { label: "Saves", value: selected.saves ?? 0 },
-                    { label: "Reach", value: selected.reach ?? 0 },
-                    { label: "Impressions", value: selected.impressions ?? 0 },
-                    {
-                      label: "Engagement total",
-                      value: selected.engagementTotal,
-                    },
-                    {
-                      label: "Engagement rate",
-                      value:
-                        selected.engagementRate == null
-                          ? "N/A"
-                          : `${selected.engagementRate}%`,
-                    },
-                  ].map((stat) => (
-                    <div
-                      key={stat.label}
-                      className="rounded-xl border bg-white p-3 shadow-inner"
-                    >
-                      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                        {stat.label}
-                      </div>
-                      <div className="text-lg font-semibold tabular-nums">
-                        {typeof stat.value === "number"
-                          ? stat.value.toLocaleString()
-                          : stat.value}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="space-y-2 rounded-xl border bg-white p-4">
-                  <div className="text-xs uppercase tracking-wide text-muted-foreground">
-                    Caption
-                  </div>
-                  <div className="whitespace-pre-wrap leading-relaxed">
-                    {selected.caption ?? "(no caption)"}
-                  </div>
-                </div>
-                {selected.permalink ? (
-                  <a
-                    href={selected.permalink}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full border px-4 text-sm font-medium shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    View on platform
-                  </a>
-                ) : (
-                  <span className="text-xs text-muted-foreground">
-                    No external link provided
-                  </span>
-                )}
-              </div>
-            ) : null}
-          </DialogContent>
-        </Dialog>
+        <PostDetailsModal open={isPostModalOpen} post={selected} onClose={closeModal} />
       </div>
     </section>
   );

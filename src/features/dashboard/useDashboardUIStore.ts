@@ -15,6 +15,9 @@ type DashboardUIState = {
   selectedPostId: string | null;
   setSelectedPostId: (id: string | null) => void;
 
+  isPostModalOpen: boolean;
+  setPostModalOpen: (open: boolean) => void;
+
   postsSearch: string;
   setPostsSearch: (search: string) => void;
 };
@@ -28,6 +31,9 @@ export const useDashboardUIStore = create<DashboardUIState>((set) => ({
 
   selectedPostId: null,
   setSelectedPostId: (id) => set({ selectedPostId: id }),
+
+  isPostModalOpen: false,
+  setPostModalOpen: (open) => set({ isPostModalOpen: open }),
 
   postsSearch: "",
   setPostsSearch: (search) => set({ postsSearch: search }),
