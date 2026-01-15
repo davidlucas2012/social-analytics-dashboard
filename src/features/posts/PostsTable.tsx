@@ -31,6 +31,9 @@ import {
 } from "@/components/ui/dialog";
 import { useDashboardUIStore } from "@/features/dashboard/useDashboardUIStore";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ExternalLink } from "lucide-react";
+import moment from "moment";
+import { Badge } from "@/components/ui/badge";
 
 type PostWithComputed = PostRow & {
   engagementTotal: number;
@@ -141,7 +144,9 @@ export default function PostsTable() {
           new Date(a.original.posted_at).getTime() -
           new Date(b.original.posted_at).getTime(),
         cell: ({ getValue }) => (
-          <span className="whitespace-nowrap">{formatDate(String(getValue()))}</span>
+          <span className="whitespace-nowrap">
+            {formatDate(String(getValue()))}
+          </span>
         ),
       },
       {
@@ -336,11 +341,13 @@ export default function PostsTable() {
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
           <div className="flex gap-2">
-            {([
-              { value: "all", label: "All" },
-              { value: "instagram", label: "Instagram" },
-              { value: "tiktok", label: "TikTok" },
-            ] as const).map((opt) => (
+            {(
+              [
+                { value: "all", label: "All" },
+                { value: "instagram", label: "Instagram" },
+                { value: "tiktok", label: "TikTok" },
+              ] as const
+            ).map((opt) => (
               <Button
                 key={opt.value}
                 type="button"
@@ -396,7 +403,10 @@ export default function PostsTable() {
               ))
             ) : error ? (
               <TableRow>
-                <TableCell colSpan={columnCount} className="text-sm text-red-600">
+                <TableCell
+                  colSpan={columnCount}
+                  className="text-sm text-red-600"
+                >
                   Failed to load posts: {(error as Error).message}
                 </TableCell>
               </TableRow>
@@ -444,69 +454,64 @@ export default function PostsTable() {
           </TableBody>
         </Table>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Post details</DialogTitle>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader className="flex-row items-start justify-between gap-3">
+              <div>
+                <DialogTitle className="text-lg font-semibold">
+                  Post details
+                </DialogTitle>
+                {selected ? (
+                  <Badge variant="outline" className="capitalize">
+                    {moment(selected.posted_at).format("MMM D, YYYY, h:mm A")}
+                  </Badge>
+                ) : null}
+              </div>
             </DialogHeader>
 
             {selected ? (
               <div className="space-y-4 text-sm">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex gap-3">
-                    <div className="h-24 w-24">
-                      {selected.thumbnail_url ? (
-                        <div className="relative h-full w-full">
-                          {imageLoading ? (
-                            <Skeleton className="absolute inset-0 h-full w-full rounded-lg" />
-                          ) : null}
-                          <Image
-                            src={selected.thumbnail_url}
-                            alt="Post thumbnail"
-                            width={120}
-                            height={120}
-                            className="h-24 w-24 rounded-lg object-cover"
-                            onLoadingComplete={() => setImageLoading(false)}
-                          />
-                        </div>
-                      ) : (
-                        <div className="h-full w-full rounded-lg bg-muted flex items-center justify-center text-xs text-muted-foreground">
-                          No thumbnail
-                        </div>
-                      )}
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-muted-foreground">Platform</div>
-                      <div className="font-medium capitalize">
-                        {selected.platform}
+                  <div className="flex gap-4 w-full">
+                    {selected.thumbnail_url ? (
+                      <div className="relative overflow-hidden rounded-xl border shadow-sm">
+                        {imageLoading ? (
+                          <Skeleton className="absolute inset-0 h-full w-full" />
+                        ) : null}
+                        <Image
+                          src={selected.thumbnail_url}
+                          alt="Post thumbnail"
+                          width={120}
+                          height={120}
+                          className="h-full object-cover transition duration-300"
+                          onLoadingComplete={() => setImageLoading(false)}
+                        />
                       </div>
-                      <div className="text-muted-foreground">Media</div>
-                      <div className="font-medium capitalize">
-                        {selected.media_type}
+                    ) : (
+                      <div className="h-full w-full rounded-xl border bg-muted flex items-center justify-center text-xs text-muted-foreground">
+                        No thumbnail
                       </div>
-                      <div className="text-muted-foreground">Posted</div>
-                      <div className="font-medium">
-                        {new Date(selected.posted_at).toLocaleString()}
+                    )}
+                    <div className="space-y-3 text-sm text-muted-foreground">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[11px] uppercase tracking-wide">
+                          Platform
+                        </span>
+                        <span className="text-base font-semibold text-foreground capitalize">
+                          {selected.platform}
+                        </span>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[11px] uppercase tracking-wide">
+                          Media
+                        </span>
+                        <span className="text-base font-semibold text-foreground capitalize">
+                          {selected.media_type}
+                        </span>
                       </div>
                     </div>
                   </div>
-
-                  {selected.permalink ? (
-                    <a
-                      href={selected.permalink}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex h-10 items-center justify-center rounded-md border px-3 text-sm font-medium"
-                    >
-                      View on platform
-                    </a>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">
-                      No external link provided
-                    </span>
-                  )}
                 </div>
-
-                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {[
                     { label: "Likes", value: selected.likes ?? 0 },
                     { label: "Comments", value: selected.comments ?? 0 },
@@ -526,9 +531,14 @@ export default function PostsTable() {
                           : `${selected.engagementRate}%`,
                     },
                   ].map((stat) => (
-                    <div key={stat.label} className="rounded-md border p-3">
-                      <div className="text-muted-foreground">{stat.label}</div>
-                      <div className="font-semibold tabular-nums">
+                    <div
+                      key={stat.label}
+                      className="rounded-xl border bg-white p-3 shadow-inner"
+                    >
+                      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                        {stat.label}
+                      </div>
+                      <div className="text-lg font-semibold tabular-nums">
                         {typeof stat.value === "number"
                           ? stat.value.toLocaleString()
                           : stat.value}
@@ -537,12 +547,29 @@ export default function PostsTable() {
                   ))}
                 </div>
 
-                <div className="space-y-1">
-                  <div className="text-muted-foreground">Caption</div>
+                <div className="space-y-2 rounded-xl border bg-white p-4">
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Caption
+                  </div>
                   <div className="whitespace-pre-wrap leading-relaxed">
                     {selected.caption ?? "(no caption)"}
                   </div>
                 </div>
+                {selected.permalink ? (
+                  <a
+                    href={selected.permalink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full border px-4 text-sm font-medium shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    View on platform
+                  </a>
+                ) : (
+                  <span className="text-xs text-muted-foreground">
+                    No external link provided
+                  </span>
+                )}
               </div>
             ) : null}
           </DialogContent>

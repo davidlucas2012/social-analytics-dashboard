@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, LogOut } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import PostsTable from "@/features/posts/PostsTable";
 import { useDailyMetrics } from "@/features/metrics/useDailyMetrics";
@@ -11,6 +11,7 @@ import { useSummary } from "@/features/analytics/useSummary";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { clearAuthCookies } from "@/lib/supabase/authCookies";
+import { useQueryClient } from "@tanstack/react-query";
 
 type DashboardClientProps = {
   email: string | null;
@@ -18,6 +19,7 @@ type DashboardClientProps = {
 
 export function DashboardClient({ email }: DashboardClientProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [signingOut, setSigningOut] = useState(false);
   const {
     data: summary,
@@ -39,26 +41,34 @@ export function DashboardClient({ email }: DashboardClientProps) {
     setSigningOut(true);
     await supabase.auth.signOut();
     clearAuthCookies();
+    queryClient.clear();
     router.replace("/login");
   }
 
   return (
     <main className="min-h-screen p-6 space-y-4">
-      <header className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Dashboard</h1>
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+          <h1 className="text-xl font-semibold">Dashboard</h1>
+          <p className="text-sm text-muted-foreground">
+            Signed in as{" "}
+            <span className="font-medium text-foreground">
+              {email ?? "—"}
+            </span>
+          </p>
+        </div>
         <button
           onClick={signOut}
-          className="h-9 rounded-md border px-3 text-sm"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full border bg-white/70 text-sm shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-60"
           disabled={signingOut}
+          aria-label="Sign out"
+          title={signingOut ? "Signing out…" : "Sign out"}
         >
-          {signingOut ? "Signing out…" : "Sign out"}
+          <LogOut className="h-5 w-5" />
         </button>
       </header>
 
-      <section className="rounded-xl border p-6">
-        <p className="text-sm">
-          Signed in as <span className="font-medium">{email}</span>
-        </p>
+      <section className="rounded-2xl border bg-white/75 p-6 shadow-sm backdrop-blur-sm gap-6 space-y-6">
         <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {summaryLoading
             ? Array.from({ length: 4 }).map((_, i) => (
@@ -156,7 +166,6 @@ export function DashboardClient({ email }: DashboardClientProps) {
                 </Card>,
               ]}
         </section>
-        <PostsTable />
         <section className="rounded-xl border p-6 space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Engagement (last 30 days)</h2>
@@ -176,6 +185,9 @@ export function DashboardClient({ email }: DashboardClientProps) {
           ) : (
             <EngagementLineChart days={dailyMetrics!} />
           )}
+        </section>
+        <section className="rounded-xl border p-6">
+          <PostsTable />
         </section>
       </section>
     </main>
