@@ -9,6 +9,17 @@ import { EngagementLineChart } from "./EngagementLineChart";
 import { useSummary } from "@/features/analytics/useSummary";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+function calcEngagementTrend(days: { engagement: number }[]) {
+  if (!days || days.length < 14) return null;
+  const last7 = days.slice(-7).reduce((a, d) => a + (d.engagement ?? 0), 0);
+  const prev7 = days
+    .slice(-14, -7)
+    .reduce((a, d) => a + (d.engagement ?? 0), 0);
+  if (prev7 === 0) return null;
+  const pct = ((last7 - prev7) / prev7) * 100;
+  return Number(pct.toFixed(1));
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -23,6 +34,10 @@ export default function DashboardPage() {
     isLoading: metricsLoading,
     error: metricsError,
   } = useDailyMetrics();
+
+  const engagementTrend = dailyMetrics
+    ? calcEngagementTrend(dailyMetrics)
+    : null;
 
   useEffect(() => {
     async function loadSession() {
@@ -71,7 +86,7 @@ export default function DashboardPage() {
         <p className="text-sm">
           Signed in as <span className="font-medium">{email}</span>
         </p>
-        <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader>
               <CardTitle>Total posts</CardTitle>
@@ -91,6 +106,21 @@ export default function DashboardPage() {
                 : summary?.avgEngagementRate == null
                 ? "—"
                 : `${summary.avgEngagementRate}%`}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>7‑day engagement trend</CardTitle>
+            </CardHeader>
+            <CardContent className="text-2xl font-semibold tabular-nums">
+              {metricsLoading || engagementTrend == null ? (
+                "—"
+              ) : engagementTrend >= 0 ? (
+                <span className="text-green-600">+{engagementTrend}%</span>
+              ) : (
+                <span className="text-red-600">{engagementTrend}%</span>
+              )}
             </CardContent>
           </Card>
 
