@@ -1,108 +1,37 @@
 "use client";
-import React from "react";
-import { scaleLinear, scaleUtc } from "@visx/scale";
+
 import { AxisBottom, AxisLeft } from "@visx/axis";
 import { AreaClosed, LinePath } from "@visx/shape";
+import { TooltipWithBounds } from "@visx/tooltip";
 import { Button } from "@/components/ui/button";
-import { localPoint } from "@visx/event";
-import { TooltipWithBounds, defaultStyles, useTooltip } from "@visx/tooltip";
-import { useDashboardUIStore } from "@/features/dashboard/useDashboardUIStore";
+import { useEngagementLineChart } from "@/app/dashboard/useEngagementLineChart";
 import type { DailyMetricPoint } from "@/features/metrics/useDailyMetrics";
 
 export function EngagementLineChart({ days }: { days: DailyMetricPoint[] }) {
-  const [width, setWidth] = React.useState(800);
-  const containerRef = React.useRef<HTMLDivElement | null>(null);
-
-  // Resize observer keeps the SVG responsive to its parent width.
-  React.useEffect(() => {
-    const node = containerRef.current;
-    if (!node) return;
-    const resize = () => setWidth(Math.max(360, node.clientWidth));
-    resize();
-    const observer = new ResizeObserver(resize);
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, []);
-
-  // Fixed internal dimensions, but scales visually with CSS (simple & reliable)
-  const { chartMode, setChartMode } = useDashboardUIStore();
-
-  const height = 260;
-  const margin = { top: 10, right: 16, bottom: 36, left: 44 };
-  const toleranceValue = 20;
-
-  const data = days.map((d) => ({
-    date: new Date(d.date + "T00:00:00Z").getTime(), // unix ms
-    engagement: d.engagement ?? 0,
-  }));
-
-  const xDomain: [number, number] = [data[0].date, data[data.length - 1].date];
-  const maxY = Math.max(1, ...data.map((d) => d.engagement));
-
-  const xScale = scaleUtc<number>({
-    domain: xDomain,
-    range: [margin.left, width - margin.right],
-  });
-
-  const yScale = scaleLinear<number>({
-    domain: [0, maxY],
-    range: [height - margin.bottom, margin.top],
-    nice: true,
-  });
-
-  const { tooltipData, tooltipLeft, tooltipTop, showTooltip, hideTooltip } =
-    useTooltip<{ date: number; engagement: number }>();
-
-  const tooltipStyles = {
-    ...defaultStyles,
-    background: "rgba(0,0,0,0.85)",
-    color: "white",
-    border: "none",
-    borderRadius: 8,
-    padding: "8px 10px",
-    fontSize: 12,
-  } as const;
-
-  function handlePointerMove(evt: React.PointerEvent<SVGRectElement>) {
-    const p = localPoint(evt);
-    if (!p) return;
-
-    // Clamp x to the drawable chart area
-    const xMin = margin.left;
-    const xMax = width - margin.right;
-    const x = Math.max(xMin, Math.min(xMax, p.x));
-
-    // Convert pixel x -> domain time (ms) and snap to nearest datum
-    const inv = xScale.invert(x);
-    const target =
-      inv instanceof Date ? inv.getTime() : new Date(inv).getTime();
-
-    // data is ordered by date asc, use binary search for nearest index
-    let lo = 0;
-    let hi = data.length - 1;
-    while (lo < hi) {
-      const mid = Math.floor((lo + hi) / 2);
-      if (data[mid].date < target) lo = mid + 1;
-      else hi = mid;
-    }
-
-    const i = lo;
-    const prev = data[Math.max(0, i - 1)];
-    const curr = data[i];
-    const nearest =
-      Math.abs(prev.date - target) <= Math.abs(curr.date - target)
-        ? prev
-        : curr;
-
-    const left = xScale(nearest.date) ?? 0;
-      const top = yScale(nearest.engagement) ?? 0;
-
-      showTooltip({
-        tooltipData: { date: nearest.date, engagement: nearest.engagement },
-        tooltipLeft: left,
-      tooltipTop: top,
-    });
-  }
+  const {
+    containerRef,
+    width,
+    height,
+    margin,
+    chartMode,
+    setLineMode,
+    setAreaMode,
+    data,
+    xScale,
+    yScale,
+    tooltipData,
+    tooltipLeft,
+    tooltipTop,
+    tooltipStyles,
+    tooltipPosition,
+    formatTooltipDate,
+    handlePointerMove,
+    handlePointerOut,
+    axisLeftTickProps,
+    axisBottomTickProps,
+    axisBottomTickFormat,
+    overlayBounds,
+  } = useEngagementLineChart(days);
 
   return (
     <div ref={containerRef} className="w-full overflow-x-auto space-y-3">
@@ -111,7 +40,7 @@ export function EngagementLineChart({ days }: { days: DailyMetricPoint[] }) {
           type="button"
           variant={chartMode === "line" ? "default" : "outline"}
           size="sm"
-          onClick={() => setChartMode("line")}
+          onClick={setLineMode}
         >
           Line
         </Button>
@@ -119,7 +48,7 @@ export function EngagementLineChart({ days }: { days: DailyMetricPoint[] }) {
           type="button"
           variant={chartMode === "area" ? "default" : "outline"}
           size="sm"
-          onClick={() => setChartMode("area")}
+          onClick={setAreaMode}
         >
           Area
         </Button>
@@ -134,7 +63,6 @@ export function EngagementLineChart({ days }: { days: DailyMetricPoint[] }) {
           role="img"
           aria-label="Engagement chart for the last 30 days"
         >
-          {/* Legend */}
           <g transform={`translate(${margin.left}, ${margin.top + 4})`}>
             <circle r={5} fill="currentColor" cx={0} cy={0} />
             <text x={10} y={4} fontSize={11} className="fill-current">
@@ -145,31 +73,16 @@ export function EngagementLineChart({ days }: { days: DailyMetricPoint[] }) {
           <AxisLeft
             scale={yScale}
             left={margin.left}
-            tickLabelProps={() => ({
-              fontSize: 10,
-              textAnchor: "end",
-              dx: "-0.25em",
-              dy: "0.25em",
-            })}
+            tickLabelProps={axisLeftTickProps}
           />
           <AxisBottom
             scale={xScale}
             top={height - margin.bottom}
             numTicks={6}
-            tickFormat={(d) => {
-              const ts = d instanceof Date ? d.getTime() : d.valueOf();
-              return new Date(ts).toLocaleDateString(undefined, {
-                month: "short",
-                day: "numeric",
-              });
-            }}
-            tickLabelProps={() => ({
-              fontSize: 10,
-              textAnchor: "middle",
-              dy: "0.5em",
-            })}
+            tickFormat={axisBottomTickFormat}
+            tickLabelProps={axisBottomTickProps}
           />
-          {/* Axis labels */}
+
           <text
             x={width / 2}
             y={height - 4}
@@ -223,60 +136,32 @@ export function EngagementLineChart({ days }: { days: DailyMetricPoint[] }) {
             />
           )}
 
-          {/* Pointer overlay (slightly larger to avoid edge dead-zones) */}
           <rect
-            x={Math.max(0, margin.left - toleranceValue)}
-            y={Math.max(0, margin.top - toleranceValue)}
-            width={width - margin.left - margin.right + toleranceValue}
-            height={height - margin.top - margin.bottom + toleranceValue}
+            x={overlayBounds.x}
+            y={overlayBounds.y}
+            width={overlayBounds.width}
+            height={overlayBounds.height}
             fill="transparent"
             pointerEvents="all"
             onPointerMove={handlePointerMove}
-            onPointerOut={(e) => {
-              // Only hide when leaving the SVG entirely, not when moving between elements
-              if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
-                hideTooltip();
-              }
-            }}
+            onPointerOut={handlePointerOut}
           />
         </svg>
 
-        {tooltipData
-          ? (() => {
-              // Keep tooltip inside the chart bounds to avoid layout/scroll overflow.
-              const TOOLTIP_W = 190;
-              const TOOLTIP_H = 64;
-
-              const rawLeft = tooltipLeft ?? 0;
-              const rawTop = tooltipTop ?? 0;
-
-              // Center tooltip horizontally on the point, but clamp to [0, width - TOOLTIP_W]
-              const left = Math.min(
-                Math.max(0, rawLeft - TOOLTIP_W / 2),
-                width - TOOLTIP_W
-              );
-
-              // Prefer tooltip above the point, but clamp to [0, height - TOOLTIP_H]
-              const top = Math.min(
-                Math.max(0, rawTop - TOOLTIP_H - 10),
-                height - TOOLTIP_H
-              );
-
-              return (
-                <TooltipWithBounds left={left} top={top} style={tooltipStyles}>
-                  <div className="font-medium">
-                    {new Date(tooltipData.date).toLocaleDateString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </div>
-                  <div className="opacity-90">
-                    Engagement: {tooltipData.engagement}
-                  </div>
-                </TooltipWithBounds>
-              );
-            })()
-          : null}
+        {tooltipData && tooltipPosition ? (
+          <TooltipWithBounds
+            left={tooltipPosition.left}
+            top={tooltipPosition.top}
+            style={tooltipStyles}
+          >
+            <div className="font-medium">
+              {formatTooltipDate(tooltipData.date)}
+            </div>
+            <div className="opacity-90">
+              Engagement: {tooltipData.engagement}
+            </div>
+          </TooltipWithBounds>
+        ) : null}
       </div>
     </div>
   );

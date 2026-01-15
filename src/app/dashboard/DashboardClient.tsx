@@ -1,49 +1,28 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { ArrowDownRight, ArrowUpRight, LogOut } from "lucide-react";
-import { supabase } from "@/lib/supabase/client";
 import PostsTable from "@/features/posts/PostsTable";
-import { useDailyMetrics } from "@/features/metrics/useDailyMetrics";
 import { EngagementLineChart } from "./EngagementLineChart";
-import { useSummary } from "@/features/analytics/useSummary";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { clearAuthCookies } from "@/lib/supabase/authCookies";
-import { useQueryClient } from "@tanstack/react-query";
+import { useDashboardClient } from "@/app/dashboard/useDashboardClient";
 
 type DashboardClientProps = {
   email: string | null;
 };
 
 export function DashboardClient({ email }: DashboardClientProps) {
-  const router = useRouter();
-  const queryClient = useQueryClient();
-  const [signingOut, setSigningOut] = useState(false);
   const {
-    data: summary,
-    isLoading: summaryLoading,
-    error: summaryError,
-  } = useSummary();
-  const {
-    data: dailyMetrics,
-    isLoading: metricsLoading,
-    error: metricsError,
-  } = useDailyMetrics();
-
-  const hasEngagementData =
-    Array.isArray(dailyMetrics) &&
-    dailyMetrics.length > 0 &&
-    dailyMetrics.some((d) => (d.engagement ?? 0) > 0);
-
-  async function signOut() {
-    setSigningOut(true);
-    await supabase.auth.signOut();
-    clearAuthCookies();
-    queryClient.clear();
-    router.replace("/login");
-  }
+    summary,
+    summaryLoading,
+    summaryError,
+    dailyMetrics,
+    metricsLoading,
+    metricsError,
+    hasEngagementData,
+    signOut,
+    signingOut,
+  } = useDashboardClient();
 
   return (
     <main className="min-h-screen p-6 space-y-4">

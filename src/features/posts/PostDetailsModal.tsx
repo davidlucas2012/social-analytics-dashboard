@@ -1,12 +1,17 @@
 "use client";
 
-import { useState } from "react";
 import Image from "next/image";
 import { ExternalLink } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDateTimeReadable } from "@/lib/format";
 import type { PostWithComputed } from "./types";
+import { usePostDetailsModal } from "@/features/posts/usePostDetailsModal";
 
 type PostDetailsModalProps = {
   open: boolean;
@@ -14,17 +19,30 @@ type PostDetailsModalProps = {
   onClose: () => void;
 };
 
-export function PostDetailsModal({ open, post, onClose }: PostDetailsModalProps) {
-  const [loadedImageKey, setLoadedImageKey] = useState<string | null>(null);
-  const imageLoading =
-    !!post?.thumbnail_url && loadedImageKey !== post.thumbnail_url;
+export function PostDetailsModal({
+  open,
+  post,
+  onClose,
+}: PostDetailsModalProps) {
+  const {
+    imageLoading,
+    stats,
+    caption,
+    mediaType,
+    platform,
+    handleOpenChange,
+    handleImageLoaded,
+    permalink,
+  } = usePostDetailsModal(post, onClose);
 
   return (
-    <Dialog open={open} onOpenChange={(next) => (!next ? onClose() : undefined)}>
-      <DialogContent className="max-w-3xl bg-white/70 backdrop-blur-xl border border-white/60 shadow-2xl">
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="max-w-3xl bg-secondary backdrop-blur-xl border border-white/60 shadow-2xl">
         <DialogHeader className="flex-row items-start justify-between gap-3">
           <div>
-            <DialogTitle className="text-lg font-semibold">Post details</DialogTitle>
+            <DialogTitle className="text-lg font-semibold">
+              Post details
+            </DialogTitle>
           </div>
         </DialogHeader>
 
@@ -35,14 +53,16 @@ export function PostDetailsModal({ open, post, onClose }: PostDetailsModalProps)
                 <div className="h-24 w-24">
                   {post.thumbnail_url ? (
                     <div className="relative h-full w-full overflow-hidden rounded-xl border shadow-sm">
-                      {imageLoading ? <Skeleton className="absolute inset-0 h-full w-full" /> : null}
+                      {imageLoading ? (
+                        <Skeleton className="absolute inset-0 h-full w-full" />
+                      ) : null}
                       <Image
                         src={post.thumbnail_url}
                         alt="Post thumbnail"
                         width={120}
                         height={120}
                         className="h-full w-full object-cover transition duration-300"
-                        onLoadingComplete={() => setLoadedImageKey(post.thumbnail_url)}
+                        onLoadingComplete={handleImageLoaded}
                       />
                     </div>
                   ) : (
@@ -53,15 +73,19 @@ export function PostDetailsModal({ open, post, onClose }: PostDetailsModalProps)
                 </div>
                 <div className="space-y-3 text-sm text-muted-foreground">
                   <div className="flex flex-col gap-1">
-                    <span className="text-[11px] uppercase tracking-wide">Platform</span>
+                    <span className="text-[11px] uppercase tracking-wide">
+                      Platform
+                    </span>
                     <span className="text-base font-semibold text-foreground capitalize">
-                      {post.platform}
+                      {platform}
                     </span>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <span className="text-[11px] uppercase tracking-wide">Media</span>
+                    <span className="text-[11px] uppercase tracking-wide">
+                      Media
+                    </span>
                     <span className="text-base font-semibold text-foreground capitalize">
-                      {post.media_type}
+                      {mediaType}
                     </span>
                   </div>
                 </div>
@@ -69,56 +93,55 @@ export function PostDetailsModal({ open, post, onClose }: PostDetailsModalProps)
             </div>
 
             <div className="space-y-2">
-              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Posted</div>
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                Posted
+              </div>
               <div className="inline-flex items-center gap-2 rounded-full border bg-white px-4 py-2 text-xs font-semibold tracking-wide text-foreground shadow-sm">
                 {formatDateTimeReadable(post.posted_at)}
               </div>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {[
-                { label: "Likes", value: post.likes ?? 0 },
-                { label: "Comments", value: post.comments ?? 0 },
-                { label: "Shares", value: post.shares ?? 0 },
-                { label: "Saves", value: post.saves ?? 0 },
-                { label: "Reach", value: post.reach ?? 0 },
-                { label: "Impressions", value: post.impressions ?? 0 },
-                { label: "Engagement total", value: post.engagementTotal },
-                {
-                  label: "Engagement rate",
-                  value: post.engagementRate == null ? "N/A" : `${post.engagementRate}%`,
-                },
-              ].map((stat) => (
-                <div key={stat.label} className="rounded-xl border bg-white p-3 shadow-inner">
+              {stats.map((stat) => (
+                <div
+                  key={stat.label}
+                  className="rounded-xl border bg-white p-3 shadow-inner"
+                >
                   <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
                     {stat.label}
                   </div>
                   <div className="text-lg font-semibold tabular-nums">
-                    {typeof stat.value === "number" ? stat.value.toLocaleString() : stat.value}
+                    {typeof stat.value === "number"
+                      ? stat.value.toLocaleString()
+                      : stat.value}
                   </div>
                 </div>
               ))}
             </div>
 
             <div className="space-y-2 rounded-xl border bg-white p-4">
-              <div className="text-xs uppercase tracking-wide text-muted-foreground">Caption</div>
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                Caption
+              </div>
               <div className="whitespace-pre-wrap leading-relaxed">
-                {post.caption ?? "(no caption)"}
+                {caption}
               </div>
             </div>
 
-            {post.permalink ? (
+            {permalink ? (
               <a
-                href={post.permalink}
+                href={permalink}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full border px-4 text-sm font-medium shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                className="inline-flex h-10 w-full bg-primary text-white items-center justify-center gap-2 rounded-full border px-4 text-sm font-bold shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
               >
                 <ExternalLink className="h-4 w-4" />
                 View on platform
               </a>
             ) : (
-              <span className="text-xs text-muted-foreground">No external link provided</span>
+              <span className="text-xs text-muted-foreground">
+                No external link provided
+              </span>
             )}
           </div>
         ) : null}
