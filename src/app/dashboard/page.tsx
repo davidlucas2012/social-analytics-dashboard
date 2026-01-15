@@ -6,12 +6,18 @@ import { supabase } from "@/lib/supabase/client";
 import PostsTable from "@/features/posts/PostsTable";
 import { useDailyMetrics } from "@/features/metrics/useDailyMetrics";
 import { EngagementLineChart } from "./EngagementLineChart";
+import { useSummary } from "@/features/analytics/useSummary";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function DashboardPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState<string | null>(null);
-
+  const {
+    data: summary,
+    isLoading: summaryLoading,
+    error: summaryError,
+  } = useSummary();
   const {
     data: dailyMetrics,
     isLoading: metricsLoading,
@@ -65,6 +71,57 @@ export default function DashboardPage() {
         <p className="text-sm">
           Signed in as <span className="font-medium">{email}</span>
         </p>
+        <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <Card>
+            <CardHeader>
+              <CardTitle>Total posts</CardTitle>
+            </CardHeader>
+            <CardContent className="text-2xl font-semibold tabular-nums">
+              {summaryLoading ? "—" : summary?.totalPosts ?? 0}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Avg engagement rate</CardTitle>
+            </CardHeader>
+            <CardContent className="text-2xl font-semibold tabular-nums">
+              {summaryLoading
+                ? "—"
+                : summary?.avgEngagementRate == null
+                ? "—"
+                : `${summary.avgEngagementRate}%`}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Top post</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-1">
+              {summaryLoading ? (
+                <div className="text-sm text-muted-foreground">Loading…</div>
+              ) : summaryError ? (
+                <div className="text-sm text-red-600">
+                  {(summaryError as Error).message}
+                </div>
+              ) : summary?.topPost ? (
+                <>
+                  <div className="text-sm font-medium capitalize">
+                    {summary.topPost.platform}
+                  </div>
+                  <div className="text-sm text-muted-foreground line-clamp-2">
+                    {summary.topPost.caption ?? "(no caption)"}
+                  </div>
+                </>
+              ) : (
+                <div className="text-sm text-muted-foreground">
+                  No posts yet.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </section>
         <PostsTable />
         <section className="rounded-xl border p-6 space-y-3">
           <div className="flex items-center justify-between">
