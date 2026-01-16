@@ -48,7 +48,7 @@ This dashboard provides content creators with insights into their social media p
 - `/api/metrics/daily` always returns the requested window (7–90 days) and fills any missing days with `0` engagement/reach so the chart never receives an empty array.
 
 **UI behavior**:
-- Summary cards render `0` or `—`, and the top-post card shows "No posts yet." when the API reports empties.
+- Summary cards render `0` when zero is a valid numeric result and `—` when the metric is not computable (e.g., no posts for avg rate/trend); the top-post card shows "No posts yet." when the API reports empties. This keeps "no data" distinct from a true zero.
 - The engagement section shows "No engagement data available for the selected period." when `hasEngagementData` detects all-zero metrics; loading/error states render text fallbacks instead of a broken chart.
 - [`PostsTable`](src/features/posts/PostsTable.tsx) renders skeleton rows while loading, a clear error message on failures, "No posts yet" for empty datasets, and "No results" when filters remove all rows; the modal stays closed when no post is selected.
 
@@ -196,7 +196,7 @@ supabase/
 
 2. **Install dependencies**
    ```bash
-   npm install
+   yarn install
    ```
 
 3. **Set up Supabase**
@@ -218,7 +218,7 @@ supabase/
 
 5. **Run development server**
    ```bash
-   npm run dev
+   yarn dev
    ```
 
 6. **Access the app**
@@ -233,14 +233,11 @@ supabase/
 
 ### Deployment
 
-1. **Deploy to Vercel**
-   ```bash
-   vercel
-   ```
-
-2. **Set environment variables** in Vercel dashboard:
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+1. **Vercel deployment**
+   - Already deployed to Vercel; pushes to the main branch auto-deploy.
+   - Environment variables are configured in the Vercel dashboard:
+     - `NEXT_PUBLIC_SUPABASE_URL`
+     - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
 3. **Verify Edge Function**: `/api/metrics/daily` should run on Edge Runtime
 
