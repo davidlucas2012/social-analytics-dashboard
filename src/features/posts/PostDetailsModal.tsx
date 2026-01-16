@@ -37,7 +37,7 @@ export function PostDetailsModal({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-3xl bg-secondary backdrop-blur-xl border border-white/60 shadow-2xl">
+      <DialogContent className="max-w-3xl bg-white/95 backdrop-blur-xl border border-white/60 shadow-2xl">
         <DialogHeader className="flex-row items-start justify-between gap-3">
           <div>
             <DialogTitle className="text-lg font-semibold">

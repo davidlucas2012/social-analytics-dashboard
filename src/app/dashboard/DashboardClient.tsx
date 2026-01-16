@@ -31,14 +31,12 @@ export function DashboardClient({ email }: DashboardClientProps) {
           <h1 className="text-xl font-semibold">Dashboard</h1>
           <p className="text-sm text-muted-foreground">
             Signed in as{" "}
-            <span className="font-medium text-foreground">
-              {email ?? "—"}
-            </span>
+            <span className="font-medium text-foreground">{email ?? "—"}</span>
           </p>
         </div>
         <button
           onClick={signOut}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-full border bg-white/70 text-sm shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-60"
+          className="inline-flex h-10 cursor-pointer w-10 items-center justify-center rounded-full border bg-white/70 text-sm shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-60"
           disabled={signingOut}
           aria-label="Sign out"
           title={signingOut ? "Signing out…" : "Sign out"}

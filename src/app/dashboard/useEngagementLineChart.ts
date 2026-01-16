@@ -6,7 +6,7 @@ import { useDashboardUIStore } from "@/features/dashboard/useDashboardUIStore";
 import type { DailyMetricPoint } from "@/features/metrics/useDailyMetrics";
 
 const CHART_HEIGHT = 260;
-const CHART_MARGIN = { top: 10, right: 16, bottom: 36, left: 44 } as const;
+const CHART_MARGIN = { top: 10, right: 16, bottom: 36, left: 55 } as const;
 const POINTER_TOLERANCE = 20;
 const TOOLTIP_SIZE = { width: 190, height: 64 };
 
@@ -54,10 +54,12 @@ export function useEngagementLineChart(days: DailyMetricPoint[]) {
     return [data[0].date, data[data.length - 1].date];
   }, [data]);
 
-  const maxY = useMemo(
-    () => Math.max(1, ...data.map((d) => d.engagement)),
-    [data]
-  );
+  const maxY = useMemo(() => {
+    const values = data.map((d) => d.engagement);
+    const peak = values.length > 0 ? Math.max(...values) : 0;
+    const padding = Math.max(5, Math.round(peak * 0.1));
+    return peak + padding;
+  }, [data]);
 
   const xScale = useMemo(
     () =>
@@ -78,13 +80,8 @@ export function useEngagementLineChart(days: DailyMetricPoint[]) {
     [maxY]
   );
 
-  const {
-    tooltipData,
-    tooltipLeft,
-    tooltipTop,
-    showTooltip,
-    hideTooltip,
-  } = useTooltip<{ date: number; engagement: number }>();
+  const { tooltipData, tooltipLeft, tooltipTop, showTooltip, hideTooltip } =
+    useTooltip<{ date: number; engagement: number }>();
 
   const handlePointerMove = useCallback(
     (evt: React.PointerEvent<SVGRectElement>) => {
@@ -155,16 +152,13 @@ export function useEngagementLineChart(days: DailyMetricPoint[]) {
     []
   );
 
-  const axisBottomTickFormat = useCallback(
-    (d: Date | NumericValue) => {
-      const ts = d instanceof Date ? d.getTime() : d.valueOf();
-      return new Date(ts).toLocaleDateString(undefined, {
-        month: "short",
-        day: "numeric",
-      });
-    },
-    []
-  );
+  const axisBottomTickFormat = useCallback((d: Date | NumericValue) => {
+    const ts = d instanceof Date ? d.getTime() : d.valueOf();
+    return new Date(ts).toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+    });
+  }, []);
 
   const formatTooltipDate = useCallback(
     (date: number) =>
@@ -200,10 +194,12 @@ export function useEngagementLineChart(days: DailyMetricPoint[]) {
     () => ({
       x: Math.max(0, CHART_MARGIN.left - POINTER_TOLERANCE),
       y: Math.max(0, CHART_MARGIN.top - POINTER_TOLERANCE),
-      width:
-        width - CHART_MARGIN.left - CHART_MARGIN.right + POINTER_TOLERANCE,
+      width: width - CHART_MARGIN.left - CHART_MARGIN.right + POINTER_TOLERANCE,
       height:
-        CHART_HEIGHT - CHART_MARGIN.top - CHART_MARGIN.bottom + POINTER_TOLERANCE,
+        CHART_HEIGHT -
+        CHART_MARGIN.top -
+        CHART_MARGIN.bottom +
+        POINTER_TOLERANCE,
     }),
     [width]
   );

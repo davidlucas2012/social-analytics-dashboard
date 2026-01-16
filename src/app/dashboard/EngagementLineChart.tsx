@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { useEngagementLineChart } from "@/app/dashboard/useEngagementLineChart";
 import type { DailyMetricPoint } from "@/features/metrics/useDailyMetrics";
 
+const SERIES_COLOR = "var(--color-primary, var(--primary))";
+
 export function EngagementLineChart({ days }: { days: DailyMetricPoint[] }) {
   const {
     containerRef,
@@ -35,23 +37,35 @@ export function EngagementLineChart({ days }: { days: DailyMetricPoint[] }) {
 
   return (
     <div ref={containerRef} className="w-full overflow-x-auto space-y-3">
-      <div className="flex items-center justify-end gap-2">
-        <Button
-          type="button"
-          variant={chartMode === "line" ? "default" : "outline"}
-          size="sm"
-          onClick={setLineMode}
-        >
-          Line
-        </Button>
-        <Button
-          type="button"
-          variant={chartMode === "area" ? "default" : "outline"}
-          size="sm"
-          onClick={setAreaMode}
-        >
-          Area
-        </Button>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="inline-flex items-center gap-2 text-sm">
+          <span
+            className="h-3 w-3 rounded-full"
+            style={{ backgroundColor: SERIES_COLOR }}
+            aria-hidden
+          />
+          <span className="text-muted-foreground">
+            Engagement (likes + comments + shares + saves)
+          </span>
+        </div>
+        <div className="flex items-center justify-end gap-2">
+          <Button
+            type="button"
+            variant={chartMode === "line" ? "default" : "outline"}
+            size="sm"
+            onClick={setLineMode}
+          >
+            Line
+          </Button>
+          <Button
+            type="button"
+            variant={chartMode === "area" ? "default" : "outline"}
+            size="sm"
+            onClick={setAreaMode}
+          >
+            Area
+          </Button>
+        </div>
       </div>
 
       <div className="relative overflow-hidden">
@@ -63,13 +77,6 @@ export function EngagementLineChart({ days }: { days: DailyMetricPoint[] }) {
           role="img"
           aria-label="Engagement chart for the last 30 days"
         >
-          <g transform={`translate(${margin.left}, ${margin.top + 4})`}>
-            <circle r={5} fill="currentColor" cx={0} cy={0} />
-            <text x={10} y={4} fontSize={11} className="fill-current">
-              Engagement (likes + comments + shares + saves)
-            </text>
-          </g>
-
           <AxisLeft
             scale={yScale}
             left={margin.left}
@@ -98,7 +105,7 @@ export function EngagementLineChart({ days }: { days: DailyMetricPoint[] }) {
             transform="rotate(-90)"
             textAnchor="middle"
             fontSize={11}
-            className="fill-current"
+            className="fill-current mr-20"
           >
             Engagement
           </text>
@@ -108,7 +115,7 @@ export function EngagementLineChart({ days }: { days: DailyMetricPoint[] }) {
               cx={tooltipLeft}
               cy={tooltipTop}
               r={4}
-              fill="currentColor"
+              fill={SERIES_COLOR}
               pointerEvents="none"
             />
           ) : null}
@@ -119,9 +126,9 @@ export function EngagementLineChart({ days }: { days: DailyMetricPoint[] }) {
               x={(d) => xScale(d.date) ?? 0}
               y={(d) => yScale(d.engagement) ?? 0}
               yScale={yScale}
-              stroke="currentColor"
+              stroke={SERIES_COLOR}
               strokeWidth={2}
-              fill="currentColor"
+              fill={SERIES_COLOR}
               fillOpacity={0.12}
               pointerEvents="none"
             />
@@ -130,7 +137,7 @@ export function EngagementLineChart({ days }: { days: DailyMetricPoint[] }) {
               data={data}
               x={(d) => xScale(d.date) ?? 0}
               y={(d) => yScale(d.engagement) ?? 0}
-              stroke="currentColor"
+              stroke={SERIES_COLOR}
               strokeWidth={2}
               pointerEvents="none"
             />
