@@ -234,7 +234,8 @@ supabase/
 ### Deployment
 
 1. **Vercel deployment**
-   - Already deployed to Vercel; pushes to the main branch auto-deploy.
+   - Live at https://app.lucasph.net/ (Vercel). Pushes to the main branch auto-deploy.
+   - Pushing commits to the main branch will trigger auto-deploy.
    - Environment variables are configured in the Vercel dashboard:
      - `NEXT_PUBLIC_SUPABASE_URL`
      - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
